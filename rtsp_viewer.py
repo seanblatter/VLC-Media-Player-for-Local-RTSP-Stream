@@ -39,11 +39,12 @@ HTML = r"""
     }
     header {
       grid-column: 1 / -1;
-      padding: 12px 16px;
+      padding: 12px 16px 6px;
       display: flex;
-      gap: 12px;
-      align-items: center;
+      align-items: flex-start;
       justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 4px;
       background: rgba(0,0,0,0.25);
       backdrop-filter: blur(6px);
       border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -51,26 +52,46 @@ HTML = r"""
       top: 0;
       z-index: 10;
     }
-    .menu-toggle {
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(0,0,0,0.35);
+    .title-trigger {
+      appearance: none;
+      border: none;
+      background: transparent;
       color: inherit;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
       font: inherit;
-    }
-    header .title {
       font-weight: 700;
-      font-size: 18px;
+      font-size: 20px;
       letter-spacing: 0.02em;
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 12px;
+      transition: background 0.2s ease;
+    }
+    .title-trigger:hover,
+    .title-trigger:focus-visible {
+      background: rgba(255,255,255,0.08);
+      outline: none;
+    }
+    .title-trigger .brand-suffix::before {
+      content: attr(data-prefix);
+      display: inline;
+    }
+    .title-trigger .brand-suffix:empty::before {
+      content: '';
+    }
+    .menu-hint {
+      flex-basis: 100%;
+      font-size: 12px;
+      opacity: 0.75;
+      padding-left: 12px;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .menu-hint.is-hidden {
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
     }
     main {
       grid-row: 2;
@@ -88,50 +109,76 @@ HTML = r"""
       left: clamp(20px, 8vw, 140px);
       width: min(80vw, 1100px);
       height: min(70vh, 660px);
-      display: flex;
-      flex-direction: column;
-      border-radius: 16px;
-      background: rgba(0,0,0,0.35);
-      box-shadow: 0 18px 45px rgba(0,0,0,0.45);
-      border: 1px solid rgba(255,255,255,0.08);
-      overflow: hidden;
-      backdrop-filter: blur(4px);
-    }
-    .frame-handle {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 8px 12px;
-      font-size: 12px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      cursor: grab;
-      background: rgba(0,0,0,0.45);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      user-select: none;
-    }
-    .frame-handle:active {
-      cursor: grabbing;
+      display: block;
+      border-radius: 18px;
+      background: transparent;
+      box-shadow: none;
+      border: none;
+      overflow: visible;
     }
     .stage {
-      flex: 1 1 auto;
       position: relative;
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: clamp(10px, 2vw, 24px);
-      box-sizing: border-box;
+      background: rgba(0,0,0,0.55);
+      border-radius: inherit;
+      overflow: hidden;
+      box-shadow: 0 20px 55px rgba(0,0,0,0.45);
+      backdrop-filter: blur(2px);
+      min-width: 220px;
+      min-height: 160px;
     }
     .stage img {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: inherit;
       background: #000;
+    }
+    .frame-handle {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: grab;
+      background: rgba(0,0,0,0.55);
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      user-select: none;
+      z-index: 3;
+      color: rgba(255,255,255,0.8);
+    }
+    .frame-handle:active {
+      cursor: grabbing;
+    }
+    .frame-resizer {
+      position: absolute;
+      right: -12px;
+      bottom: -12px;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.65);
+      cursor: nwse-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      user-select: none;
+      z-index: 3;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
     }
     .overlay {
       position: absolute;
@@ -146,7 +193,7 @@ HTML = r"""
       display: inline-flex;
       justify-content: center;
       touch-action: none;
-      z-index: 1;
+      z-index: 4;
     }
     .overlay:active { cursor: grabbing; }
     .overlay-inner {
@@ -163,12 +210,12 @@ HTML = r"""
     }
     .expand-control {
       position: absolute;
-      bottom: 16px;
-      right: 16px;
+      bottom: 14px;
+      right: 14px;
       padding: 8px 12px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.25);
-      background: rgba(0,0,0,0.45);
+      background: rgba(0,0,0,0.55);
       color: #fff;
       font-size: 18px;
       line-height: 1;
@@ -272,23 +319,6 @@ HTML = r"""
       font-size: 12px;
       opacity: 0.75;
     }
-    .frame-resizer {
-      position: absolute;
-      right: 8px;
-      bottom: 8px;
-      width: 20px;
-      height: 20px;
-      border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(0,0,0,0.4);
-      cursor: nwse-resize;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: rgba(255,255,255,0.8);
-      user-select: none;
-    }
     .stream-frame.fullscreen-mode .frame-handle,
     .stream-frame.fullscreen-mode .frame-resizer {
       display: none;
@@ -320,12 +350,72 @@ HTML = r"""
         left: clamp(16px, 8vw, 60px);
       }
     }
+    .sticker-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .sticker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      cursor: grab;
+      max-width: 40vw;
+      max-height: 40vh;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.35);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.45);
+      touch-action: none;
+    }
+    .sticker:active { cursor: grabbing; }
+    .sticker img {
+      display: block;
+      width: 100%;
+      height: auto;
+      pointer-events: none;
+    }
+    .sticker-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      border: none;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .panel-section input[type="file"] {
+      border: 1px dashed rgba(255,255,255,0.25);
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.2);
+      color: #f3f3f3;
+    }
+    .panel-section label.checkbox {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
   <header>
-    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="true">☰ Menu</button>
-    <span class="title">Lettuce Stream 🥬</span>
+    <button class="title-trigger" id="menuToggle" type="button" aria-expanded="true" aria-controls="rtspPanel">
+      <span class="brand-name" id="brandName">Lettuce Stream</span>
+      <span class="brand-emoji" id="brandEmoji" aria-hidden="true">🥬</span>
+      <span class="brand-suffix" id="brandSuffix" data-prefix=" "></span>
+    </button>
+    <span class="menu-hint" id="menuHint">Click to Start!</span>
   </header>
 
   <aside class="control-panel" id="rtspPanel">
@@ -349,10 +439,15 @@ HTML = r"""
               <option value="custom">Custom (drag)</option>
             </select>
           </label>
+          <label>Header name <input id="headerSuffix" type="text" placeholder="Add your name" /></label>
+          <label class="checkbox"><input id="showEmoji" type="checkbox" checked /> Show lettuce icon</label>
+          <label>Sticker upload <input id="stickerUpload" type="file" accept="image/*" /></label>
           <div class="section-actions">
             <button id="saveStyle" type="button">Save</button>
             <button id="clearStyle" type="button">Clear</button>
+            <button id="clearStickers" type="button">Clear stickers</button>
           </div>
+          <span class="panel-hint">Tip: Drag overlay text or stickers anywhere over the video or background.</span>
         </div>
       </details>
       <details class="panel-section" open>
@@ -386,16 +481,17 @@ HTML = r"""
   </aside>
 
   <main>
+    <div id="stickerLayer" class="sticker-layer"></div>
     <div class="stream-frame" id="streamFrame">
       <div class="frame-handle" id="frameHandle" title="Drag to move stream">⋮⋮</div>
       <div class="stage" id="stage">
         <img id="feed" src="/video_feed" alt="RTSP stream" />
         <button id="expandToggle" class="expand-control" type="button" aria-label="Toggle fullscreen">⤢</button>
-        <div id="overlay" class="overlay">
-          <div id="overlayInner" class="overlay-inner"></div>
-        </div>
       </div>
       <div class="frame-resizer" id="frameResizer" title="Drag to resize">⤢</div>
+    </div>
+    <div id="overlay" class="overlay">
+      <div id="overlayInner" class="overlay-inner"></div>
     </div>
   </main>
 
@@ -407,6 +503,15 @@ HTML = r"""
     const $expand = $('#expandToggle');
     const $rtspPanel = $('#rtspPanel');
     const $menuToggle = $('#menuToggle');
+    const $menuHint = $('#menuHint');
+    const $brandEmoji = $('#brandEmoji');
+    const $brandSuffixEl = $('#brandSuffix');
+    const $brandName = $('#brandName');
+    const $headerSuffix = $('#headerSuffix');
+    const $showEmoji = $('#showEmoji');
+    const $stickerUpload = $('#stickerUpload');
+    const $stickerLayer = $('#stickerLayer');
+    const $clearStickers = $('#clearStickers');
     const $u = $('#u'), $p = $('#p'), $ip = $('#ip'), $port = $('#port'), $path = $('#path');
     const $feed = $('#feed');
     const $frame = $('#streamFrame');
@@ -416,6 +521,22 @@ HTML = r"""
     const root = document.documentElement;
 
     const DEFAULTS = { bg: '#101418', fg: '#ffffff', posX: 50, posY: 50 };
+    const BRANDING_DEFAULTS = { suffix: '', showEmoji: true };
+    const BRANDING_KEY = 'rtsp_viewer_branding';
+    const HINT_KEY = 'rtsp_viewer_hint_dismissed';
+    const STICKER_KEY = 'rtsp_viewer_stickers';
+    const overlayArea = $main || document.body;
+    let brandingState = { ...BRANDING_DEFAULTS };
+    let hintDismissed = false;
+    let stickers = [];
+
+    try {
+      hintDismissed = localStorage.getItem(HINT_KEY) === '1';
+    } catch (_) {}
+    if ($menuHint && hintDismissed) {
+      $menuHint.classList.add('is-hidden');
+    }
+
     const presetPositions = {
       'center': { x: 50, y: 50 },
       'top-left': { x: 12, y: 12 },
@@ -441,14 +562,14 @@ HTML = r"""
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
     const updateOverlayFromPointer = (clientX, clientY) => {
-      if (!$stage) return;
-      const rect = $stage.getBoundingClientRect();
+      if (!overlayArea) return;
+      const rect = overlayArea.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       const x = ((clientX - rect.left) / rect.width) * 100;
       const y = ((clientY - rect.top) / rect.height) * 100;
       overlayPos = {
-        x: clamp(x, 2, 98),
-        y: clamp(y, 2, 98)
+        x: clamp(x, 1, 99),
+        y: clamp(y, 1, 99)
       };
       applyOverlayPosition();
       if ($pos.value !== 'custom') {
@@ -479,6 +600,221 @@ HTML = r"""
       $overlay.addEventListener('pointercancel', endDrag);
     }
 
+    // ---- Branding ----
+    const applyBranding = () => {
+      const suffix = (brandingState.suffix || '').trim();
+      if ($brandSuffixEl) {
+        $brandSuffixEl.textContent = suffix;
+        $brandSuffixEl.dataset.prefix = suffix ? ' ' : '';
+      }
+      if ($headerSuffix && $headerSuffix.value !== brandingState.suffix) {
+        $headerSuffix.value = brandingState.suffix;
+      }
+      if ($showEmoji) {
+        $showEmoji.checked = Boolean(brandingState.showEmoji);
+      }
+      if ($brandEmoji) {
+        $brandEmoji.style.display = brandingState.showEmoji ? '' : 'none';
+      }
+      if ($menuToggle) {
+        const ariaLabel = suffix ? `Toggle setup panel for Lettuce Stream ${suffix}` : 'Toggle setup panel for Lettuce Stream';
+        $menuToggle.setAttribute('aria-label', ariaLabel);
+      }
+      if (suffix) {
+        document.title = `Lettuce Stream ${suffix}`;
+      } else {
+        document.title = 'Lettuce Stream';
+      }
+    };
+
+    const saveBranding = () => {
+      try {
+        localStorage.setItem(BRANDING_KEY, JSON.stringify(brandingState));
+      } catch (_) {}
+    };
+
+    const loadBranding = () => {
+      brandingState = { ...BRANDING_DEFAULTS };
+      try {
+        const stored = JSON.parse(localStorage.getItem(BRANDING_KEY) || '{}');
+        if (typeof stored.suffix === 'string') brandingState.suffix = stored.suffix;
+        if (typeof stored.showEmoji === 'boolean') brandingState.showEmoji = stored.showEmoji;
+      } catch (_) {}
+      applyBranding();
+    };
+
+    if ($headerSuffix) {
+      $headerSuffix.addEventListener('input', event => {
+        brandingState.suffix = event.target.value;
+        applyBranding();
+        saveBranding();
+      });
+    }
+    if ($showEmoji) {
+      $showEmoji.addEventListener('change', event => {
+        brandingState.showEmoji = event.target.checked;
+        applyBranding();
+        saveBranding();
+      });
+    }
+
+    // ---- Sticker helpers ----
+    const positionStickerEl = (el, sticker) => {
+      if (!el || !sticker) return;
+      el.style.left = `${sticker.x}%`;
+      el.style.top = `${sticker.y}%`;
+      if (sticker.width) {
+        el.style.width = `${sticker.width}px`;
+      }
+    };
+
+    const saveStickers = () => {
+      try {
+        localStorage.setItem(STICKER_KEY, JSON.stringify(stickers));
+      } catch (_) {}
+    };
+
+    const removeSticker = id => {
+      stickers = stickers.filter(item => item.id !== id);
+      if ($stickerLayer) {
+        const existing = $stickerLayer.querySelector(`.sticker[data-id="${id}"]`);
+        if (existing) existing.remove();
+      }
+      saveStickers();
+    };
+
+    const updateStickerPosition = (clientX, clientY, sticker, el) => {
+      if (!overlayArea) return;
+      const rect = overlayArea.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const x = clamp(((clientX - rect.left) / rect.width) * 100, 1, 99);
+      const y = clamp(((clientY - rect.top) / rect.height) * 100, 1, 99);
+      sticker.x = x;
+      sticker.y = y;
+      positionStickerEl(el, sticker);
+      saveStickers();
+    };
+
+    const attachStickerDrag = (el, sticker) => {
+      if (!el) return;
+      let dragging = false;
+      el.addEventListener('pointerdown', event => {
+        const target = event.target;
+        if (target && target.classList && target.classList.contains('sticker-remove')) {
+          return;
+        }
+        dragging = true;
+        try { el.setPointerCapture(event.pointerId); } catch (_) {}
+        event.preventDefault();
+      });
+      const stopDrag = event => {
+        if (!dragging) return;
+        dragging = false;
+        try { el.releasePointerCapture(event.pointerId); } catch (_) {}
+      };
+      el.addEventListener('pointermove', event => {
+        if (!dragging) return;
+        updateStickerPosition(event.clientX, event.clientY, sticker, el);
+      });
+      el.addEventListener('pointerup', stopDrag);
+      el.addEventListener('pointercancel', stopDrag);
+    };
+
+    const stickerBaseWidth = () => {
+      if (!overlayArea) return 200;
+      const rect = overlayArea.getBoundingClientRect();
+      if (!rect.width) return 200;
+      return Math.max(120, Math.min(rect.width * 0.22, 280));
+    };
+
+    const createStickerElement = sticker => {
+      if (!$stickerLayer) return null;
+      const el = document.createElement('div');
+      el.className = 'sticker';
+      el.dataset.id = sticker.id;
+      const img = document.createElement('img');
+      img.src = sticker.src;
+      img.alt = 'Custom sticker';
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'sticker-remove';
+      remove.textContent = '×';
+      remove.addEventListener('click', event => {
+        event.stopPropagation();
+        removeSticker(sticker.id);
+      });
+      el.appendChild(img);
+      el.appendChild(remove);
+      sticker.width = sticker.width || Math.round(stickerBaseWidth());
+      positionStickerEl(el, sticker);
+      attachStickerDrag(el, sticker);
+      $stickerLayer.appendChild(el);
+      return el;
+    };
+
+    const renderStickers = () => {
+      if (!$stickerLayer) return;
+      $stickerLayer.innerHTML = '';
+      stickers.forEach(sticker => createStickerElement(sticker));
+    };
+
+    const addSticker = src => {
+      if (!src) return;
+      const sticker = {
+        id: `s_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        src,
+        x: 50,
+        y: 50,
+        width: Math.round(stickerBaseWidth())
+      };
+      stickers.push(sticker);
+      createStickerElement(sticker);
+      saveStickers();
+    };
+
+    const loadStickers = () => {
+      stickers = [];
+      try {
+        const stored = JSON.parse(localStorage.getItem(STICKER_KEY) || '[]');
+        if (Array.isArray(stored)) {
+          stickers = stored.filter(item => item && typeof item.src === 'string').map(item => ({
+            id: item.id || `s_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+            src: item.src,
+            x: typeof item.x === 'number' ? item.x : 50,
+            y: typeof item.y === 'number' ? item.y : 50,
+            width: typeof item.width === 'number' ? item.width : Math.round(stickerBaseWidth())
+          }));
+        }
+      } catch (_) {}
+      renderStickers();
+    };
+
+    if ($stickerUpload) {
+      $stickerUpload.addEventListener('change', event => {
+        const input = event.target;
+        if (!input || !input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.addEventListener('load', () => {
+          if (typeof reader.result === 'string') {
+            addSticker(reader.result);
+          }
+          $stickerUpload.value = '';
+        });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if ($clearStickers) {
+      $clearStickers.addEventListener('click', () => {
+        stickers = [];
+        if ($stickerLayer) {
+          $stickerLayer.innerHTML = '';
+        }
+        saveStickers();
+      });
+    }
+
     // ---- Frame layout helpers ----
     let frameTouched = false;
 
@@ -491,8 +827,8 @@ HTML = r"""
       let top = frameRect.top;
       let width = frameRect.width;
       let height = frameRect.height;
-      const minWidth = 280;
-      const minHeight = 180;
+      const minWidth = 240;
+      const minHeight = 160;
       if (width < minWidth) width = minWidth;
       if (height < minHeight) height = minHeight;
       left = Math.max(mainRect.left + 12, Math.min(left, mainRect.right - width - 12));
@@ -514,7 +850,7 @@ HTML = r"""
       const baseWidth = Math.min(mainRect.width * factor, maxWidth);
       const baseHeight = Math.min(mainRect.height * maxHeightBase, collapsed ? 720 : 660);
       const finalWidth = Math.max(baseWidth, 320);
-      const finalHeight = Math.max(baseHeight, 220);
+      const finalHeight = Math.max(baseHeight, 200);
       $frame.style.width = `${finalWidth}px`;
       $frame.style.height = `${finalHeight}px`;
       $frame.style.left = `${Math.max(12, (mainRect.width - finalWidth) / 2)}px`;
@@ -625,12 +961,22 @@ HTML = r"""
     document.addEventListener('webkitfullscreenchange', updateFullscreenState);
 
     // ---- Panel visibility ----
-    const setPanelCollapsed = collapsed => {
+    const setPanelCollapsed = (collapsed, options = {}) => {
+      const { fromUser = false } = options;
       if (!$rtspPanel) return;
       $rtspPanel.classList.toggle('collapsed', collapsed);
       document.body.classList.toggle('panel-collapsed', collapsed);
       if ($menuToggle) {
         $menuToggle.setAttribute('aria-expanded', String(!collapsed));
+      }
+      if ($menuHint) {
+        if (collapsed && fromUser && !hintDismissed) {
+          hintDismissed = true;
+          $menuHint.classList.add('is-hidden');
+          try { localStorage.setItem(HINT_KEY, '1'); } catch (_) {}
+        } else if (!hintDismissed) {
+          $menuHint.classList.remove('is-hidden');
+        }
       }
       if ($frame && $main && !frameTouched) {
         const mainRect = $main.getBoundingClientRect();
@@ -638,7 +984,7 @@ HTML = r"""
         const targetFactor = collapsed ? 0.9 : 0.75;
         const maxWidth = collapsed ? 1400 : 1100;
         let width = Math.max(320, Math.min(mainRect.width * targetFactor, maxWidth));
-        let height = Math.max(220, width * (ratio || 0.5625));
+        let height = Math.max(200, width * (ratio || 0.5625));
         const maxHeight = Math.max(240, mainRect.height - 48);
         if (height > maxHeight) {
           height = maxHeight;
@@ -655,7 +1001,7 @@ HTML = r"""
     if ($menuToggle) {
       $menuToggle.addEventListener('click', () => {
         const collapsed = document.body.classList.contains('panel-collapsed');
-        setPanelCollapsed(!collapsed);
+        setPanelCollapsed(!collapsed, { fromUser: true });
         if (!document.body.classList.contains('panel-collapsed') && $u && typeof $u.focus === 'function') {
           setTimeout(() => {
             try {
@@ -725,8 +1071,8 @@ HTML = r"""
         if (!resizing) return;
         const deltaX = event.clientX - startX;
         const deltaY = event.clientY - startY;
-        const minWidth = 280;
-        const minHeight = 180;
+        const minWidth = 240;
+        const minHeight = 160;
         const newWidth = Math.max(minWidth, startWidth + deltaX);
         const newHeight = Math.max(minHeight, startHeight + deltaY);
         $frame.style.width = `${newWidth}px`;
@@ -773,6 +1119,8 @@ HTML = r"""
     $('#saveRtsp').addEventListener('click', saveRtsp);
 
     // Init
+    loadBranding();
+    loadStickers();
     loadStyle();
     updateFullscreenState();
     loadRtsp();
