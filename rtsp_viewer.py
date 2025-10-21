@@ -27,11 +27,15 @@ HTML = r"""
     body {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 1fr minmax(240px, 360px);
+      grid-template-columns: minmax(260px, 22vw) 1fr;
       grid-template-rows: auto 1fr;
       background: var(--bg, #101418);
       color: #e8e8e8;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      transition: grid-template-columns 0.3s ease;
+    }
+    body.panel-collapsed {
+      grid-template-columns: 0 1fr;
     }
     header {
       grid-column: 1 / -1;
@@ -39,7 +43,7 @@ HTML = r"""
       display: flex;
       gap: 12px;
       align-items: center;
-      flex-wrap: wrap;
+      justify-content: flex-start;
       background: rgba(0,0,0,0.25);
       backdrop-filter: blur(6px);
       border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -47,32 +51,20 @@ HTML = r"""
       top: 0;
       z-index: 10;
     }
-    header .controls {
-      display: flex;
-      gap: 12px;
+    .menu-toggle {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.35);
+      color: inherit;
+      cursor: pointer;
+      display: inline-flex;
       align-items: center;
-      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      font: inherit;
     }
-    header label { font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 6px; }
-    header input[type="text"], header input[type="password"], .rtsp-panel input[type="text"], .rtsp-panel input[type="password"] {
-      padding: 6px 8px; border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(0,0,0,0.2); color: #f3f3f3; min-width: 140px; outline: none;
-    }
-    header select {
-      padding: 6px 8px; border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(0,0,0,0.2); color: #f3f3f3; outline: none;
-    }
-    header button, .rtsp-panel button {
-      padding: 8px 12px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.05); color: #fff; cursor: pointer;
-    }
-    header .badge { font-size: 11px; padding: 4px 8px; border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); margin-left: 8px; }
     header .title {
-      margin-left: auto;
       font-weight: 700;
       font-size: 18px;
       letter-spacing: 0.02em;
@@ -82,14 +74,49 @@ HTML = r"""
     }
     main {
       grid-row: 2;
-      grid-column: 1;
+      grid-column: 2;
       position: relative;
       overflow: hidden;
       min-height: 0;
     }
+    body.panel-collapsed main {
+      grid-column: 1 / span 2;
+    }
+    .stream-frame {
+      position: absolute;
+      top: clamp(20px, 6vh, 80px);
+      left: clamp(20px, 8vw, 140px);
+      width: min(80vw, 1100px);
+      height: min(70vh, 660px);
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      background: rgba(0,0,0,0.35);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      backdrop-filter: blur(4px);
+    }
+    .frame-handle {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: grab;
+      background: rgba(0,0,0,0.45);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      user-select: none;
+    }
+    .frame-handle:active {
+      cursor: grabbing;
+    }
     .stage {
-      width: 100%;
-      height: 100%;
+      flex: 1 1 auto;
       position: relative;
       display: flex;
       align-items: center;
@@ -165,136 +192,212 @@ HTML = r"""
       border-radius: 0;
       box-shadow: none;
     }
-    .rtsp-panel {
+    .control-panel {
       grid-row: 2;
-      grid-column: 2;
+      grid-column: 1;
       background: rgba(0,0,0,0.35);
-      border-left: 1px solid rgba(255,255,255,0.07);
+      border-right: 1px solid rgba(255,255,255,0.07);
       display: flex;
       flex-direction: column;
       max-height: 100%;
-      transition: max-height 0.3s ease;
+      transition: transform 0.3s ease;
       overflow: hidden;
     }
-    .rtsp-panel-header {
+    .control-panel.collapsed {
+      transform: translateX(-100%);
+      pointer-events: none;
+    }
+    .panel-scroll {
+      padding: 18px;
+      overflow-y: auto;
+      display: grid;
+      gap: 18px;
+    }
+    .panel-section {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .panel-section summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 16px 18px;
-      border: none;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      cursor: pointer;
-      text-align: left;
+      font-weight: 600;
     }
-    .rtsp-panel-header .chevron {
-      transition: transform 0.2s ease;
-    }
-    .rtsp-panel.collapsed .rtsp-panel-header .chevron {
-      transform: rotate(-90deg);
-    }
-    .panel-body {
+    .panel-section summary::-webkit-details-marker { display: none; }
+    .panel-section[open] summary .chevron { transform: rotate(180deg); }
+    .panel-section .chevron { transition: transform 0.2s ease; }
+    .panel-section .section-body {
       display: grid;
       gap: 12px;
       padding: 0 18px 18px;
-      max-height: 800px;
-      transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
     }
-    .rtsp-panel.collapsed .panel-body {
-      max-height: 0;
-      opacity: 0;
-      padding: 0 18px;
-      pointer-events: none;
-    }
-    .panel-body label {
+    .panel-section label {
       font-size: 12px;
-      opacity: 0.9;
+      opacity: 0.92;
       display: flex;
       flex-direction: column;
       gap: 6px;
+    }
+    .panel-section input[type="text"],
+    .panel-section input[type="password"],
+    .panel-section input[type="color"],
+    .panel-section select {
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.2);
+      color: #f3f3f3;
+      outline: none;
+    }
+    .panel-section button {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      cursor: pointer;
+    }
+    .section-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .panel-hint {
       font-size: 12px;
       opacity: 0.75;
     }
+    .frame-resizer {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.4);
+      cursor: nwse-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      user-select: none;
+    }
+    .stream-frame.fullscreen-mode .frame-handle,
+    .stream-frame.fullscreen-mode .frame-resizer {
+      display: none;
+    }
+    .stage.fullscreen-active ~ .frame-resizer,
+    .stage.fullscreen-active ~ .frame-handle {
+      display: none;
+    }
     @media (max-width: 900px) {
       body {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto 1fr;
+        grid-template-rows: auto 1fr;
       }
       main {
-        grid-row: 3;
         grid-column: 1;
       }
-      .rtsp-panel {
-        grid-row: 2;
+      .control-panel {
         grid-column: 1;
-        border-left: none;
-        border-top: 1px solid rgba(255,255,255,0.07);
+        grid-row: 2;
+        max-height: 320px;
+      }
+      body.panel-collapsed {
+        grid-template-rows: auto 1fr;
+      }
+      body.panel-collapsed main {
+        grid-row: 2;
+      }
+      .stream-frame {
+        left: clamp(16px, 8vw, 60px);
       }
     }
   </style>
 </head>
 <body>
   <header>
-    <div class="controls">
-      <span class="badge">MJPEG proxy</span>
-      <label>Background <input id="bg" type="color" /></label>
-      <label>Text color <input id="fg" type="color" value="#ffffff" /></label>
-      <label>Overlay text <input id="text" type="text" placeholder="Type overlay text…" /></label>
-      <label>Position
-        <select id="pos">
-          <option value="center">Center</option>
-          <option value="top-left">Top-Left</option>
-          <option value="top-right">Top-Right</option>
-          <option value="bottom-left">Bottom-Left</option>
-          <option value="bottom-right">Bottom-Right</option>
-          <option value="custom">Custom (drag)</option>
-        </select>
-      </label>
-      <button id="saveStyle">Save</button>
-      <button id="clearStyle">Clear</button>
-    </div>
+    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="true">☰ Menu</button>
     <span class="title">Lettuce Stream 🥬</span>
   </header>
 
-  <main>
-    <div class="stage" id="stage">
-      <img id="feed" src="/video_feed" alt="RTSP stream" />
-      <button id="expandToggle" class="expand-control" type="button" aria-label="Toggle fullscreen">⤢</button>
-      <div id="overlay" class="overlay">
-        <div id="overlayInner" class="overlay-inner"></div>
-      </div>
-    </div>
-  </main>
-
-  <aside class="rtsp-panel" id="rtspPanel">
-    <button class="rtsp-panel-header" type="button" id="rtspPanelToggle">
-      <span class="panel-title">Lettuce Stream 🥬</span>
-      <span class="chevron">⌄</span>
-    </button>
-    <div class="panel-body">
-      <label>User
-        <input id="u" type="text" placeholder="username" />
-      </label>
-      <label>Pass
-        <input id="p" type="password" placeholder="password" />
-      </label>
-      <label>IP
-        <input id="ip" type="text" placeholder="192.168.1.164" />
-      </label>
-      <label>Port
-        <input id="port" type="text" value="554" />
-      </label>
-      <label>Path
-        <input id="path" type="text" value="/stream1" />
-      </label>
-      <button id="saveRtsp">Save</button>
-      <span class="panel-hint">Tip: Many cameras use <code>/stream1</code> (HD) and <code>/stream2</code> (SD).</span>
+  <aside class="control-panel" id="rtspPanel">
+    <div class="panel-scroll">
+      <details class="panel-section" open>
+        <summary>
+          <span>Appearance</span>
+          <span class="chevron">⌄</span>
+        </summary>
+        <div class="section-body">
+          <label>Background <input id="bg" type="color" /></label>
+          <label>Text color <input id="fg" type="color" value="#ffffff" /></label>
+          <label>Overlay text <input id="text" type="text" placeholder="Type overlay text…" /></label>
+          <label>Position
+            <select id="pos">
+              <option value="center">Center</option>
+              <option value="top-left">Top-Left</option>
+              <option value="top-right">Top-Right</option>
+              <option value="bottom-left">Bottom-Left</option>
+              <option value="bottom-right">Bottom-Right</option>
+              <option value="custom">Custom (drag)</option>
+            </select>
+          </label>
+          <div class="section-actions">
+            <button id="saveStyle" type="button">Save</button>
+            <button id="clearStyle" type="button">Clear</button>
+          </div>
+        </div>
+      </details>
+      <details class="panel-section" open>
+        <summary>
+          <span>Stream source</span>
+          <span class="chevron">⌄</span>
+        </summary>
+        <div class="section-body">
+          <label>User
+            <input id="u" type="text" placeholder="username" />
+          </label>
+          <label>Pass
+            <input id="p" type="password" placeholder="password" />
+          </label>
+          <label>IP
+            <input id="ip" type="text" placeholder="192.168.1.164" />
+          </label>
+          <label>Port
+            <input id="port" type="text" value="554" />
+          </label>
+          <label>Path
+            <input id="path" type="text" value="/stream1" />
+          </label>
+          <div class="section-actions">
+            <button id="saveRtsp" type="button">Save</button>
+          </div>
+          <span class="panel-hint">Tip: Many cameras use <code>/stream1</code> (HD) and <code>/stream2</code> (SD).</span>
+        </div>
+      </details>
     </div>
   </aside>
+
+  <main>
+    <div class="stream-frame" id="streamFrame">
+      <div class="frame-handle" id="frameHandle" title="Drag to move stream">⋮⋮</div>
+      <div class="stage" id="stage">
+        <img id="feed" src="/video_feed" alt="RTSP stream" />
+        <button id="expandToggle" class="expand-control" type="button" aria-label="Toggle fullscreen">⤢</button>
+        <div id="overlay" class="overlay">
+          <div id="overlayInner" class="overlay-inner"></div>
+        </div>
+      </div>
+      <div class="frame-resizer" id="frameResizer" title="Drag to resize">⤢</div>
+    </div>
+  </main>
 
   <script>
     const $ = sel => document.querySelector(sel);
@@ -303,9 +406,13 @@ HTML = r"""
     const $stage = $('#stage');
     const $expand = $('#expandToggle');
     const $rtspPanel = $('#rtspPanel');
-    const $rtspToggle = $('#rtspPanelToggle');
+    const $menuToggle = $('#menuToggle');
     const $u = $('#u'), $p = $('#p'), $ip = $('#ip'), $port = $('#port'), $path = $('#path');
     const $feed = $('#feed');
+    const $frame = $('#streamFrame');
+    const $frameHandle = $('#frameHandle');
+    const $frameResizer = $('#frameResizer');
+    const $main = document.querySelector('main');
     const root = document.documentElement;
 
     const DEFAULTS = { bg: '#101418', fg: '#ffffff', posX: 50, posY: 50 };
@@ -372,6 +479,49 @@ HTML = r"""
       $overlay.addEventListener('pointercancel', endDrag);
     }
 
+    // ---- Frame layout helpers ----
+    let frameTouched = false;
+
+    function clampFrameWithinMain() {
+      if (!$frame || !$main) return;
+      const mainRect = $main.getBoundingClientRect();
+      const frameRect = $frame.getBoundingClientRect();
+      if (!mainRect.width || !mainRect.height) return;
+      let left = frameRect.left;
+      let top = frameRect.top;
+      let width = frameRect.width;
+      let height = frameRect.height;
+      const minWidth = 280;
+      const minHeight = 180;
+      if (width < minWidth) width = minWidth;
+      if (height < minHeight) height = minHeight;
+      left = Math.max(mainRect.left + 12, Math.min(left, mainRect.right - width - 12));
+      top = Math.max(mainRect.top + 12, Math.min(top, mainRect.bottom - height - 12));
+      $frame.style.width = `${width}px`;
+      $frame.style.height = `${height}px`;
+      $frame.style.left = `${left - mainRect.left}px`;
+      $frame.style.top = `${top - mainRect.top}px`;
+    }
+
+    function positionFrameInitially() {
+      if (!$frame || !$main) return;
+      const mainRect = $main.getBoundingClientRect();
+      if (!mainRect.width || !mainRect.height) return;
+      const collapsed = document.body.classList.contains('panel-collapsed');
+      const factor = collapsed ? 0.9 : 0.75;
+      const maxWidth = collapsed ? 1400 : 1100;
+      const maxHeightBase = collapsed ? 0.82 : 0.7;
+      const baseWidth = Math.min(mainRect.width * factor, maxWidth);
+      const baseHeight = Math.min(mainRect.height * maxHeightBase, collapsed ? 720 : 660);
+      const finalWidth = Math.max(baseWidth, 320);
+      const finalHeight = Math.max(baseHeight, 220);
+      $frame.style.width = `${finalWidth}px`;
+      $frame.style.height = `${finalHeight}px`;
+      $frame.style.left = `${Math.max(12, (mainRect.width - finalWidth) / 2)}px`;
+      $frame.style.top = `${Math.max(24, (mainRect.height - finalHeight) / 2)}px`;
+      frameTouched = false;
+    }
+
     // ---- Style state ----
     const loadStyle = () => {
       overlayPos = { x: DEFAULTS.posX, y: DEFAULTS.posY };
@@ -433,7 +583,10 @@ HTML = r"""
       if ($pos.value === 'custom') return;
       setOverlayFromPreset($pos.value);
     });
-    $('#saveStyle').addEventListener('click', saveStyle);
+    $('#saveStyle').addEventListener('click', () => {
+      saveStyle();
+      setPanelCollapsed(true);
+    });
     $('#clearStyle').addEventListener('click', clearStyle);
 
     // ---- Fullscreen control ----
@@ -442,6 +595,9 @@ HTML = r"""
       const fullscreenEl = document.fullscreenElement || document.webkitFullscreenElement;
       const isFullscreen = fullscreenEl === $stage;
       $stage.classList.toggle('fullscreen-active', isFullscreen);
+      if ($frame) {
+        $frame.classList.toggle('fullscreen-mode', isFullscreen);
+      }
       $expand.textContent = isFullscreen ? '⤡' : '⤢';
       $expand.setAttribute('aria-label', isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen');
     };
@@ -468,11 +624,124 @@ HTML = r"""
     document.addEventListener('fullscreenchange', updateFullscreenState);
     document.addEventListener('webkitfullscreenchange', updateFullscreenState);
 
-    // ---- RTSP state ----
+    // ---- Panel visibility ----
     const setPanelCollapsed = collapsed => {
       if (!$rtspPanel) return;
       $rtspPanel.classList.toggle('collapsed', collapsed);
+      document.body.classList.toggle('panel-collapsed', collapsed);
+      if ($menuToggle) {
+        $menuToggle.setAttribute('aria-expanded', String(!collapsed));
+      }
+      if ($frame && $main && !frameTouched) {
+        const mainRect = $main.getBoundingClientRect();
+        const ratio = $frame.offsetHeight / Math.max($frame.offsetWidth, 1);
+        const targetFactor = collapsed ? 0.9 : 0.75;
+        const maxWidth = collapsed ? 1400 : 1100;
+        let width = Math.max(320, Math.min(mainRect.width * targetFactor, maxWidth));
+        let height = Math.max(220, width * (ratio || 0.5625));
+        const maxHeight = Math.max(240, mainRect.height - 48);
+        if (height > maxHeight) {
+          height = maxHeight;
+          width = Math.max(320, height / (ratio || 0.5625));
+        }
+        $frame.style.width = `${width}px`;
+        $frame.style.height = `${height}px`;
+        $frame.style.left = `${Math.max(12, (mainRect.width - width) / 2)}px`;
+        $frame.style.top = `${Math.max(24, (mainRect.height - height) / 2)}px`;
+      }
+      setTimeout(() => clampFrameWithinMain(), 50);
     };
+
+    if ($menuToggle) {
+      $menuToggle.addEventListener('click', () => {
+        const collapsed = document.body.classList.contains('panel-collapsed');
+        setPanelCollapsed(!collapsed);
+        if (!document.body.classList.contains('panel-collapsed') && $u && typeof $u.focus === 'function') {
+          setTimeout(() => {
+            try {
+              $u.focus({ preventScroll: true });
+            } catch (_) {
+              $u.focus();
+            }
+          }, 120);
+        }
+      });
+    }
+
+    // ---- Frame dragging ----
+    if ($frameHandle && $frame) {
+      let draggingFrame = false;
+      let startX = 0, startY = 0, frameStartLeft = 0, frameStartTop = 0;
+      $frameHandle.addEventListener('pointerdown', event => {
+        if (!$main) return;
+        draggingFrame = true;
+        startX = event.clientX;
+        startY = event.clientY;
+        const rect = $frame.getBoundingClientRect();
+        const mainRect = $main.getBoundingClientRect();
+        frameStartLeft = rect.left - mainRect.left;
+        frameStartTop = rect.top - mainRect.top;
+        try { $frameHandle.setPointerCapture(event.pointerId); } catch (_) {}
+        event.preventDefault();
+      });
+      const stopDragging = event => {
+        if (!draggingFrame) return;
+        draggingFrame = false;
+        try { $frameHandle.releasePointerCapture(event.pointerId); } catch (_) {}
+        clampFrameWithinMain();
+      };
+      $frameHandle.addEventListener('pointermove', event => {
+        if (!draggingFrame) return;
+        const deltaX = event.clientX - startX;
+        const deltaY = event.clientY - startY;
+        $frame.style.left = `${frameStartLeft + deltaX}px`;
+        $frame.style.top = `${frameStartTop + deltaY}px`;
+        frameTouched = true;
+      });
+      $frameHandle.addEventListener('pointerup', stopDragging);
+      $frameHandle.addEventListener('pointercancel', stopDragging);
+    }
+
+    if ($frameResizer && $frame) {
+      let resizing = false;
+      let startX = 0, startY = 0, startWidth = 0, startHeight = 0;
+      $frameResizer.addEventListener('pointerdown', event => {
+        resizing = true;
+        startX = event.clientX;
+        startY = event.clientY;
+        const rect = $frame.getBoundingClientRect();
+        startWidth = rect.width;
+        startHeight = rect.height;
+        try { $frameResizer.setPointerCapture(event.pointerId); } catch (_) {}
+        event.preventDefault();
+      });
+      const stopResizing = event => {
+        if (!resizing) return;
+        resizing = false;
+        try { $frameResizer.releasePointerCapture(event.pointerId); } catch (_) {}
+        clampFrameWithinMain();
+      };
+      $frameResizer.addEventListener('pointermove', event => {
+        if (!resizing) return;
+        const deltaX = event.clientX - startX;
+        const deltaY = event.clientY - startY;
+        const minWidth = 280;
+        const minHeight = 180;
+        const newWidth = Math.max(minWidth, startWidth + deltaX);
+        const newHeight = Math.max(minHeight, startHeight + deltaY);
+        $frame.style.width = `${newWidth}px`;
+        $frame.style.height = `${newHeight}px`;
+        frameTouched = true;
+      });
+      $frameResizer.addEventListener('pointerup', stopResizing);
+      $frameResizer.addEventListener('pointercancel', stopResizing);
+    }
+
+    window.addEventListener('resize', () => {
+      clampFrameWithinMain();
+    });
+
+    // ---- RTSP state ----
     const buildRtsp = (u, p, ip, port, path) => {
       const auth = (u && p) ? `${encodeURIComponent(u)}:${encodeURIComponent(p)}@` : '';
       const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -502,27 +771,18 @@ HTML = r"""
       setPanelCollapsed(true);
     };
     $('#saveRtsp').addEventListener('click', saveRtsp);
-    $rtspToggle.addEventListener('click', () => {
-      const collapsed = $rtspPanel.classList.toggle('collapsed');
-      if (!collapsed && $u && typeof $u.focus === 'function') {
-        setTimeout(() => {
-          try {
-            $u.focus({ preventScroll: true });
-          } catch (_) {
-            $u.focus();
-          }
-        }, 50);
-      }
-    });
 
     // Init
     loadStyle();
     updateFullscreenState();
     loadRtsp();
+    positionFrameInitially();
+    clampFrameWithinMain();
   </script>
 </body>
 </html>
 """
+
 
 def open_capture(rtsp_url: str):
     cap = None
